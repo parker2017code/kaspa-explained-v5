@@ -19,7 +19,7 @@
     if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
     var g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); return { g: g, w: w, h: h };
   }
-  var fmt = function (n, d) { return n.toLocaleString('en-GB', { maximumFractionDigits: d || 0, minimumFractionDigits: d || 0 }); };
+  var fmt = function (n, d) { return n.toLocaleString('en-US', { maximumFractionDigits: d || 0, minimumFractionDigits: d || 0 }); };
 
   /* Theme and nerd mode */
   var themeBtn = $('theme');
@@ -42,23 +42,23 @@
   setNerd(store.get('ke-nerd', false));
 
   /* Popovers for "i" buttons and glossary terms */
-  var pop = null, popFor = null;
-  function closePop() { if (pop) { pop.remove(); pop = null; if (popFor) popFor.setAttribute('aria-expanded', 'false'); popFor = null; } }
+  var pop = null, popFor = null, pinned = false;
+  function closePop() { if (pop) { pop.remove(); pop = null; if (popFor) { popFor.setAttribute('aria-expanded', 'false'); popFor.removeAttribute('aria-describedby'); } popFor = null; pinned = false; } }
   function openPop(btn) {
     closePop();
-    pop = document.createElement('div'); pop.className = 'pop'; pop.setAttribute('role', 'tooltip');
+    pop = document.createElement('div'); pop.className = 'pop'; pop.id = 'pop'; pop.setAttribute('role', 'tooltip');
     pop.textContent = btn.getAttribute('data-pop');
     document.body.appendChild(pop);
     var r = btn.getBoundingClientRect(), pw = pop.offsetWidth;
     var left = Math.min(Math.max(8, r.left + window.scrollX + r.width / 2 - pw / 2), document.documentElement.clientWidth - pw - 8);
     pop.style.left = left + 'px'; pop.style.top = (r.bottom + window.scrollY + 8) + 'px';
-    btn.setAttribute('aria-expanded', 'true'); popFor = btn;
+    btn.setAttribute('aria-expanded', 'true'); btn.setAttribute('aria-describedby', 'pop'); popFor = btn;
   }
   document.querySelectorAll('[data-pop]').forEach(function (b) {
     b.setAttribute('aria-expanded', 'false');
-    b.addEventListener('click', function (e) { e.stopPropagation(); if (popFor === b) closePop(); else openPop(b); });
-    b.addEventListener('mouseenter', function () { if (matchMedia('(hover: hover)').matches) openPop(b); });
-    b.addEventListener('mouseleave', function () { if (matchMedia('(hover: hover)').matches) closePop(); });
+    b.addEventListener('click', function (e) { e.stopPropagation(); if (popFor === b && pinned) closePop(); else { if (popFor !== b) openPop(b); pinned = true; } });
+    b.addEventListener('mouseenter', function () { if (matchMedia('(hover: hover)').matches && !pinned) openPop(b); });
+    b.addEventListener('mouseleave', function () { if (matchMedia('(hover: hover)').matches && !pinned) closePop(); });
   });
   document.addEventListener('click', closePop);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePop(); });
@@ -78,15 +78,10 @@
       if (!en.isIntersecting) return;
       var s = en.target;
       chapters.forEach(function (c) { c._dot.classList.toggle('here', c === s); });
-      seen[s.id] = 1; s._dot.classList.add('seen'); store.set('ke-seen', seen); store.set('ke-last', s.id);
+      seen[s.id] = 1; s._dot.classList.add('seen'); store.set('ke-seen', seen);
     });
   }, { rootMargin: '-45% 0px -50% 0px' });
   chapters.forEach(function (s) { io.observe(s); });
-  var last = store.get('ke-last', null);
-  if (last && last !== 'c1' && $(last) && $('resume') && !location.hash) {
-    var r = $('resume'); r.hidden = false;
-    r.innerHTML = 'Welcome back. <a href="#' + last + '">Continue at ' + $(last).dataset.title + '</a>.';
-  }
   var bar = $('progress');
   function onScroll() {
     var h = document.documentElement.scrollHeight - innerHeight;
@@ -103,7 +98,7 @@
       $('lfHash').textContent = fmt(r[0].hashrate / 1000, 1) + ' PH/s';
       $('lfSupply').textContent = fmt(+r[1].circulatingSupply / 1e8 / 1e9, 3) + ' billion';
       liveReward = r[2].blockreward;
-      $('emitLive').textContent = 'Live now: ' + fmt(liveReward, 8) + ' KAS per block, about ' + fmt(liveReward * 10, 2) + ' KAS a second. Next step down: ' + fmt(r[3].nextHalvingAmount, 8) + ' KAS per block, around ' + new Date(r[3].nextHalvingTimestamp * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) + '. Source: api.kaspa.org.';
+      $('emitLive').textContent = 'Live now: ' + fmt(liveReward, 8) + ' KAS per block, about ' + fmt(liveReward * 10, 2) + ' KAS a second. Next step down: ' + fmt(r[3].nextHalvingAmount, 8) + ' KAS per block, around ' + new Date(r[3].nextHalvingTimestamp * 1000).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) + '. Source: api.kaspa.org.';
     }).catch(function () { ['lfHash', 'lfSupply'].forEach(function (id) { $(id).textContent = 'not reachable'; }); });
   }
   facts();
@@ -159,7 +154,10 @@
   function q() { return +$('qAtk').value / 100; }
   $('qAtk').addEventListener('input', function () { $('qAtkVal').textContent = Math.round(q() * 100) + '%'; setParam('atk', Math.round(q() * 100)); });
   function autoStep() {
-    if (G.blocks.length + G.secret.length > 140) { stopAuto(); $('gOut').textContent = 'That is enough history for one demo. Reset to play again.'; return; }
+    if (G.blocks.length + G.secret.length > 140) {
+      if (!hiding && !G.released) { gReset(); drawGhost(); return; }
+      stopAuto(); $('gOut').textContent = 'That is enough history for one demo. Reset to play again.'; return;
+    }
     honestRound();
     if (hiding) {
       atkAcc += width() * q() / (1 - q());
@@ -175,6 +173,7 @@
     G.base = tips(G.blocks)[0]; G.secret = []; G.released = null; G.hidingSince = 0; atkAcc = 0; hiding = true;
     $('gHide').disabled = true; $('gRelease').disabled = true;
     $('gOut').textContent = 'You went dark. Your blocks only point at each other now.';
+    startAuto();
     if (reduced) { for (var i = 0; i < 6; i++) autoStep(); }
     drawGhost();
   });
@@ -280,6 +279,7 @@
       dot(lab + colW * (bc + 0.5) + dx, 125, bc === 2 ? green : bc === 1 ? orange : muted, i);
     }
   }
+  var coinsState = { t: 0, order: null };
   drawCoins(0, null);
   coinsBtn.addEventListener('click', function () {
     var arr = [0, 1, 2, 3, 4].sort(function () { return Math.random() - 0.5; });
@@ -288,7 +288,7 @@
     (function tick(now) {
       var t = (now - t0) / 1000; drawCoins(t, arr);
       if (t < 2.6 && !reduced) requestAnimationFrame(tick);
-      else { drawCoins(9, arr); var waited = 0;
+      else { drawCoins(9, arr); coinsState = { t: 9, order: arr }; var waited = 0;
         var arrivedAt = []; arr.forEach(function (q, k) { arrivedAt[q] = k; });
         for (var q = 1; q < 5; q++) { var mx = -1; for (var r = 0; r < q; r++) mx = Math.max(mx, arrivedAt[r]); if (mx > arrivedAt[q]) waited++; }
         $('coinsOut').textContent = 'They landed in the order ' + arr.map(function (p) { return p + 1; }).join(', ') + '. Separate coins: all five done on landing. One balance: ' + waited + ' of five had to wait for a lower number.';}
@@ -341,14 +341,17 @@
   var STEP_S = 2629800, R_NOW = 20.60172230, STEP_START = 2026.757, SUPPLY_NOW = 27.779e9, T_SUPPLY = 2026.82;
   var ratio = Math.pow(0.5, 1 / 12);
   function rate(y) { var n = Math.floor((y - STEP_START) * 365.25 * 86400 / STEP_S); return R_NOW * Math.pow(ratio, n); }
-  function supplyAt(y) {
-    var s = SUPPLY_NOW, t = T_SUPPLY, dt = 1 / 120;
-    while (t < y) { s += rate(t) * dt * 365.25 * 86400; t += dt; }
+  function supplyAt(y) { // exact sum over the monthly steps (a coarse Riemann sum overshot the 28.704B cap)
+    var YS = 365.25 * 86400, s = SUPPLY_NOW, t = T_SUPPLY;
+    while (t < y) {
+      var n = Math.floor((t - STEP_START) * YS / STEP_S), end = Math.min(y, STEP_START + (n + 1) * STEP_S / YS);
+      s += rate(t) * (end - t) * YS; t = end + 1e-9;
+    }
     return s;
   }
   function drawEmit() {
     var y = +$('yIn').value; setParam('y', y.toFixed(2));
-    var month = new Date(Date.UTC(Math.floor(y), Math.round((y % 1) * 12), 1)).toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+    var month = new Date(Date.UTC(Math.floor(y), Math.floor((y % 1) * 12 + 1e-6), 1)).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
     $('yVal').textContent = month;
     var c = $('emitCanvas'), f = fit(c), g = f.g, w = f.w, h = f.h, pad = 30;
     g.clearRect(0, 0, w, h);
@@ -363,7 +366,7 @@
     var s = supplyAt(y);
     $('emitOut').innerHTML = month + ': about <b>' + fmt(rate(y), 2) + ' KAS a second</b> to miners, and about <b>' + fmt(s / 1e9, 2) + ' billion</b> KAS in total. Dates are approximate; steps follow block count, not the calendar.';
   }
-  var y0 = +params.get('y'); if (y0 >= 2026 && y0 <= 2040) $('yIn').value = y0;
+  var y0 = +params.get('y'); if (y0 >= +$('yIn').min && y0 <= 2040) $('yIn').value = y0;
   $('yIn').addEventListener('input', drawEmit);
 
   /* Chapter 5: who pays miners */
@@ -388,7 +391,7 @@
     if (!/^[0-9a-f]{64}$/.test(id)) { out.textContent = 'That doesn\'t look like a transaction id. It should be 64 characters, 0-9 and a-f.'; return; }
     out.textContent = 'Asking the network…';
     getJSON(API + '/transactions/' + id + '?resolve_previous_outpoints=no').then(function (tx) {
-      var when = tx.block_time ? new Date(tx.block_time).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'medium' }) + ' your time' : 'unknown time';
+      var when = tx.block_time ? new Date(tx.block_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'medium' }) + ' your time' : 'unknown time';
       var total = (tx.outputs || []).reduce(function (a, o) { return a + (+o.amount || 0); }, 0) / 1e8;
       out.innerHTML = (tx.is_accepted ? 'Accepted' : 'In a block, not yet accepted (give it a few seconds)') + ' · first in a block at ' + when +
         ' · outputs total ' + fmt(total, 4) + ' KAS · <a href="https://kas.fyi/transaction/' + id + '">open in explorer</a>';
@@ -403,10 +406,11 @@
   btcPoll(); setInterval(btcPoll, 30000);
   function mmss(ms) { var s = Math.floor(ms / 1000); return Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2); }
   $('dGo').addEventListener('click', function () {
-    duel = { t0: performance.now(), wall: Date.now(), fast: false, btcH0: btcTip ? btcTip.h : null };
+    duel = { id: (duel ? duel.id : 0) + 1, t0: performance.now(), wall: Date.now(), fast: false, btcH0: btcTip ? btcTip.h : null };
     $('dFast').hidden = false; $('dGo').textContent = 'Pay again'; $('dKpile').textContent = '';
+    var run = duel.id;
     (function step(now) {
-      if (!duel) return; var d = duel, t = now - d.t0;
+      if (!duel || duel.id !== run) return; var d = duel, t = Math.max(0, now - d.t0);
       var KS = 3000, k = Math.min(1, t / KS);
       $('dKclock').textContent = (Math.min(t, KS) / 1000).toFixed(1) + ' s';
       $('dKfill').style.width = (k * 100) + '%';
@@ -448,7 +452,7 @@
   });
   var saved = store.get('ke-two', null); if (saved) $('mine').value = saved;
 
-  function redrawAll() { drawGhost(); drawCoins(9, null); drawRace(); drawFair(); drawEmit(); drawMiners(); }
+  function redrawAll() { drawGhost(); drawCoins(coinsState.t, coinsState.order); drawRace(); drawFair(); drawEmit(); drawMiners(); }
   document.querySelectorAll('details').forEach(function (d) { d.addEventListener('toggle', function () { if (d.open) redrawAll(); }); });
   redrawAll();
   var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });

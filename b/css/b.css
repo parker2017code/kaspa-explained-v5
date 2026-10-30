@@ -1,0 +1,56 @@
+/* Version B, "Direct-labeled instruments". Loaded after site.css; never touches #moose.
+   Every series and mark carries its own label; no legends, no boxes; hairlines and tabular numbers. */
+details.nerd summary::after{border:0;padding:0}
+#c5 .toy,#c6 .toy,#c7 .toy{background:none;border:0;border-top:1px solid var(--line);border-radius:0;padding:20px 0 0}
+#c5 .toy canvas{background:none}
+.num,#c6 b,.open td{font-variant-numeric:tabular-nums}
+
+/* c5: two small multiples on one time axis */
+.multiples{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.multiples figure{margin:0}
+.multiples figcaption{font-size:14px;color:var(--muted);margin:0 0 8px}
+.multiples figcaption span{color:var(--faint);margin-left:6px}
+@media (max-width:640px){.multiples{grid-template-columns:1fr;gap:20px}}
+
+/* c6: one row per thing, its date mark on a shared axis */
+.ship{margin:24px auto 8px;--gut:7.5rem}
+.ship .axis{position:relative;height:22px;margin-left:calc(40% + 16px);margin-right:var(--gut);border-bottom:1px solid var(--line);font:12px var(--mono);color:var(--faint)}
+.ship .axis span{position:absolute;left:var(--x);transform:translateX(-50%);bottom:4px}
+.ship .axis span:first-child{transform:none}
+.ship .axis .nodate{left:auto;right:calc(-1 * var(--gut));transform:none;width:var(--gut);text-align:center}
+.ship .srow{display:grid;grid-template-columns:40% 1fr;gap:16px;border-bottom:1px solid var(--line);padding:12px 0;align-items:center}
+.ship .name{margin:0;font-weight:600;font-size:16px}
+.ship .name span{display:block;font-weight:400;font-size:14px;color:var(--muted)}
+.ship .when{position:relative;margin:0 var(--gut) 0 0;height:24px}
+.ship .when::before{content:"";position:absolute;left:0;right:0;top:50%;border-top:1px dotted var(--line)}
+.ship .when i{position:absolute;left:var(--x);top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:var(--green)}
+.ship .when b{position:absolute;left:var(--x);top:50%;transform:translate(10px,-50%);font:600 13px var(--mono);color:var(--text);white-space:nowrap}
+.ship .later .when{margin-right:0}
+.ship .later .when::before{display:none}
+.ship .later .when b{left:auto;right:0;transform:translateY(-50%);width:var(--gut);text-align:center;color:var(--orange);font-weight:500}
+@media (max-width:640px){
+  .ship{--gut:6.5rem}
+  .ship .axis{margin-left:0}
+  .ship .srow{grid-template-columns:1fr;gap:8px}
+}
+.wrong{margin:12px auto 22px}
+.wrong dt{margin-top:14px;font-weight:600}
+.wrong dt span{font:13px var(--mono);color:var(--red);margin-left:8px}
+.wrong dd{margin:2px 0 0;color:var(--muted);font-size:16px}
+.wrong s{text-decoration-thickness:1px}
+
+/* c7: every live figure names where it came from */
+.live-facts li code{display:block;font:12px var(--mono);color:var(--faint);margin-top:2px}
+
+/* c8: a plain ledger */
+table.open th[scope=row]{color:var(--text);font-weight:600}
+table.open td:nth-child(3){color:var(--text)}
+table.open td{color:var(--muted)}
+@media (max-width:640px){
+  .scroll table.open{min-width:0}
+  table.open thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  table.open tr{display:grid;grid-template-columns:1fr;padding:12px 0;border-bottom:1px solid var(--line)}
+  table.open th,table.open td{border:0;padding:2px 0}
+  table.open td:nth-child(2)::before{content:"Now: ";color:var(--faint)}
+  table.open td:nth-child(3)::before{content:"Settled by: ";color:var(--faint)}
+}

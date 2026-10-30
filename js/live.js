@@ -5,7 +5,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   var css = function (v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); };
-  var fmt = function (n, d) { return n.toLocaleString('en-GB', { maximumFractionDigits: d || 0, minimumFractionDigits: d || 0 }); };
+  var fmt = function (n, d) { return n.toLocaleString('en-US', { maximumFractionDigits: d || 0, minimumFractionDigits: d || 0 }); };
   var L = window.KLive = { times: [], blocks: new Map(), ok: false, failed: false, newest: 0, daa: null, subs: [], sim: false };
   function j(u) { return fetch(u, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); }
   function markChain() { if (!L.chain) return; var s = L.chain().set; L.blocks.forEach(function (b) { b.chain = s.has(b.h); }); }
@@ -82,13 +82,20 @@
   }
   function setSource() {
     var s = $('liveSource'); if (!s) return;
-    if (L.sim) { s.textContent = 'Simulation: the live network could not be reached from your browser.'; return; }
+    if (L.sim) {
+      s.textContent = 'Simulation: the live network could not be reached from your browser.';
+      // Nothing measured offline: say so instead of leaving "…" forever.
+      ['hudRate', 'hudPar', 'tK', 'tB'].forEach(function (id) { var e = $(id); if (e) e.textContent = '–'; });
+      var sc = $('lfScore'); if (sc && sc.textContent === '…') sc.textContent = 'not reachable';
+      var oo = $('orderOut'); if (oo && /real network, not a simulation/.test(oo.textContent)) oo.textContent = 'The live network could not be reached; this is a simulation and the order step is unavailable.';
+      return;
+    }
     if (!L.ok) return;
     s.innerHTML = paused ? 'Live feed paused to save data (about 0.3 MB a second). <button type="button" class="link" id="resume">Resume</button>'
       : 'Live from api.kaspa.org, shown a few seconds behind real time.';
     var r = $('resume'); if (r) r.addEventListener('click', function () { paused = false; streamedMs = 0; setSource(); });
   }
-  /* Fallback only if the API is unreachable: a labelled simulation at 10 blocks a second. */
+  /* Fallback only if the API is unreachable: a labeled simulation at 10 blocks a second. */
   var simTimer = null;
   function startSim() {
     if (simTimer) return; L.sim = true;
@@ -149,7 +156,7 @@
     var step = pps > 50 ? 2000 : 3000, first = Math.floor(renderT / step) * step;
     for (var tt = first; w - 40 - (renderT - tt) * pps / 1000 > 30; tt -= step) {
       var tx = w - 40 - (renderT - tt) * pps / 1000; g.fillRect(tx, by - 4, 1, 4);
-      g.fillText(new Date(tt).toLocaleTimeString('en-GB'), tx, by + 6);
+      g.fillText(new Date(tt).toLocaleTimeString('en-US'), tx, by + 6);
     }
     /* parent links fade with age */
     g.lineWidth = 1;
@@ -194,8 +201,8 @@
   function hud(ts) {
     if (ts - hudAt < 400 || !L.newest) return; hudAt = ts;
     var st = L.stats();
-    if (st.rate !== null) $('hudRate').textContent = fmt(st.rate, 1);
-    if (st.par !== null) $('hudPar').textContent = fmt(st.par, 1);
+    if (st.rate !== null && !L.sim) $('hudRate').textContent = fmt(st.rate, 1);
+    if (st.par !== null && !L.sim) $('hudPar').textContent = fmt(st.par, 1);
     $('hudSeen').textContent = fmt(st.seen);
   }
   var heroIn = document.querySelector('.hero-in'), hudEl = $('hud'), cold = $('coldOpen');
@@ -220,8 +227,8 @@
     var now = performance.now(); if (now - btcAt < 1000) return; btcAt = now;
     var age = (Date.now() - btc.t) / 1000, px = age * pps, m = px * 0.0254 / 96;
     var mm = Math.floor(age / 60), ss = Math.floor(age % 60);
-    el.innerHTML = 'At this scale, Bitcoin’s latest block is <b class="num">' + fmt(m, 1) + ' metres</b> off the left of your screen.';
-    $('btcScaleNote').textContent = 'Bitcoin block #' + fmt(btc.h) + ', mined ' + mm + ' min ' + ss + ' s ago (mempool.space). Its average gap, ten minutes, would be ' + fmt(600 * pps * 0.0254 / 96, 1) + ' metres here.';
+    el.innerHTML = 'At this scale, Bitcoin’s latest block is <b class="num">' + fmt(m, 1) + ' meters</b> off the left of your screen.';
+    $('btcScaleNote').textContent = 'Bitcoin block #' + fmt(btc.h) + ', mined ' + mm + ' min ' + ss + ' s ago (mempool.space). Its average gap, ten minutes, would be ' + fmt(600 * pps * 0.0254 / 96, 1) + ' meters here.';
   }
   function frame(ts) {
     var dt = lastF ? Math.min(100, ts - lastF) : 16; lastF = ts;
@@ -248,7 +255,7 @@
     if (!hoverTip) { hoverTip = document.createElement('div'); hoverTip.className = 'pop'; document.body.appendChild(hoverTip); }
     if (!best) { hoverTip.style.display = 'none'; return; }
     hoverTip.style.display = 'block';
-    hoverTip.textContent = 'Block ' + best.h.slice(0, 8) + '…' + best.h.slice(-4) + ' · mined ' + new Date(best.t).toLocaleTimeString('en-GB') + ' your time · points at ' + best.p.length + ' parents · ' + best.tx + ' transactions' + (best.chain ? ' · on the selected chain' : '');
+    hoverTip.textContent = 'Block ' + best.h.slice(0, 8) + '…' + best.h.slice(-4) + ' · mined ' + new Date(best.t).toLocaleTimeString('en-US') + ' your time · points at ' + best.p.length + ' parents · ' + best.tx + ' transactions' + (best.chain ? ' · on the selected chain' : '');
     hoverTip.style.left = Math.min(e.pageX + 12, document.documentElement.clientWidth - 330) + 'px'; hoverTip.style.top = (e.pageY + 14) + 'px';
   });
   hero.addEventListener('mouseleave', function () { if (hoverTip) hoverTip.style.display = 'none'; });
@@ -290,8 +297,9 @@
     var pos = new Map(); snap.list.forEach(function (b) { pos.set(b.h, { x: X(b.t), y: Y(b) }); });
     var line = css('--line'), teal = css('--green'), text = css('--text'), faint = css('--faint'), orange = css('--orange');
     g.clearRect(0, 0, w, h);
-    g.font = '13px ' + css('--font'); g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = faint;
-    g.fillText('Ten real seconds, as mined: ' + new Date(snap.start).toLocaleTimeString('en-GB') + ' to ' + new Date(snap.end).toLocaleTimeString('en-GB') + ' your time', 24, 16);
+    g.font = (w < 560 ? '12px ' : '13px ') + css('--font'); g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = faint;
+    var tsA = new Date(snap.start).toLocaleTimeString('en-US'), tsB = new Date(snap.end).toLocaleTimeString('en-US');
+    g.fillText(w < 560 ? tsA + ' to ' + tsB + ', your time' : 'Ten real seconds, as mined: ' + tsA + ' to ' + tsB + ' your time', 24, 16);
     var seq = ordered ? ordered.list : [], N = seq.length;
     var A = Math.min(1, anim / 0.62), B = ease((anim - 0.66) / 0.34);
     var visited = ordered ? Math.floor(A * N) : 0, rank = new Map(); seq.forEach(function (b, i) { rank.set(b.h, i); });
@@ -327,7 +335,7 @@
     }
     if (ordered && B === 0 && visited > 0) {
       g.fillStyle = orange; g.font = '600 15px ' + css('--mono'); g.textAlign = 'right'; g.textBaseline = 'alphabetic';
-      g.fillText(fmt(visited) + ' / ' + fmt(N), w - 24, 16);
+      g.fillText(fmt(visited) + ' / ' + fmt(N), w - 24, w < 560 ? 31 : 16);
     }
   }
   function playOrder() {
@@ -336,7 +344,7 @@
     $('orderOut').textContent = 'Threading ' + fmt(o.list.length) + ' real blocks in GHOSTDAG order…';
     var caption = function () { $('orderOut').innerHTML = '<b>' + fmt(snap.list.length) + ' real blocks</b>, mined in parallel in ten seconds, now in one line. ' +
       fmt(o.chains) + (o.chains === 1 ? ' is a chain block' : ' are chain blocks') + ' (white): each one merged the blocks it saw. Red: <b>' + o.reds + '</b>.' +
-      (o.waiting.length ? ' ' + o.waiting.length + ' newest still waiting for a chain block to merge them (grey).' : ''); };
+      (o.waiting.length ? ' ' + o.waiting.length + ' newest still waiting for a chain block to merge them (gray).' : ''); };
     if (reduced) { anim = 1; drawOrder(); caption(); return; }
     var t0 = performance.now(), lastV = 0;
     (function step(now) { anim = Math.min(1, (now - t0) / 6000); var v = Math.floor(Math.min(1, anim / 0.62) * ordered.list.length); if (v > lastV) { tick(ordered.list[v - 1] && ordered.list[v - 1].chain); lastV = v; } drawOrder(); if (anim < 1) requestAnimationFrame(step); else caption(); })(t0);
@@ -360,15 +368,16 @@
     }
     poll(); setInterval(poll, 15000);
     function draw() {
-      var el = (Date.now() - t0) / 1000, ok = k0 !== null && b0 !== null && el >= 30;
+      if (L.ok && L.daa && k0 !== null && L.daa > k) k = L.daa;
+      var el = (Date.now() - t0) / 1000, ok = k0 !== null && b0 !== null && k > k0;
       var nK = ok ? Math.max(0, k - k0) : 0, nB = ok ? Math.max(0, b - b0) : 0;
       var mins = Math.floor(el / 60), secs = Math.floor(el % 60);
       var since = mins ? mins + ' min ' + secs + ' s' : secs + ' s';
-      $('tK').textContent = ok ? fmt(nK) : '…';
-      $('tB').textContent = ok ? fmt(nB) : '…';
+      $('tK').textContent = ok ? fmt(nK) : (L.sim ? '–' : '…');
+      $('tB').textContent = ok ? fmt(nB) : (L.sim ? '–' : '…');
       $('tKnote').textContent = 'blocks in ' + since;
       $('tBnote').textContent = 'blocks in ' + since;
-      if (!ok) { $('tOut').textContent = 'Counting since you opened the page (' + since + ').'; }
+      if (!ok) { $('tOut').textContent = (L.sim && k0 === null) ? 'The live networks could not be reached from your browser, so there is nothing to count.' : 'Counting since you opened the page (' + since + ').'; }
       else if (nB === 0) {
         var age = bt ? Math.floor((Date.now() - bt.t) / 60000) : null;
         $('tOut').innerHTML = 'You have been here ' + since + '. Kaspa added about <b class="num">' + fmt(nK) + '</b> blocks. Bitcoin added none' + (age !== null ? ': its newest, #' + fmt(bt.h) + ', is ' + age + ' min old.' : '.') + ' Both are secured by proof-of-work.';

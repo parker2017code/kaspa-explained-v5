@@ -12,7 +12,7 @@
 }
 :root[data-theme="light"]{
   --bg:#fbfaf6; --bg-2:#f3f0ea; --bg-3:#ebe7df;
-  --text:#191714; --muted:#4a524f; --faint:#6d7673;
+  --text:#191714; --muted:#4a524f; --faint:#5a6360;
   --green:#197a6b; --cyan:#2a6fb5; --orange:#a5630f; --red:#a8442f;
   --line:rgba(25,23,20,.13); --line-bright:rgba(25,122,107,.5);
 }
@@ -32,7 +32,9 @@ a:hover{color:var(--text)}
 .brand{font-weight:600;color:var(--text);text-decoration:none;font-size:15px;display:flex;gap:8px;align-items:center}
 .brand svg{width:18px;height:18px}
 .dots{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
-.dots a{display:block;width:26px;height:6px;border-radius:3px;background:var(--line);text-decoration:none}
+.dots a{position:relative;display:block;width:26px;height:6px;border-radius:3px;background:var(--line);text-decoration:none}
+/* hit area: 24px tall target over the 6px bar (pseudo-element hit area, x.com/jakubkrehel/status/2115842050210083189) */
+.dots a::before{content:"";position:absolute;inset:-9px -3px}
 .dots a.seen{background:color-mix(in srgb,var(--green) 55%,transparent)}
 .dots a.here{background:var(--green)}
 .switch{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--muted)}
@@ -83,7 +85,7 @@ a:hover{color:var(--text)}
 .toy canvas{display:block;width:100%;border-radius:10px;background:var(--bg)}
 .controls{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;margin:14px 0}
 .controls label{font-size:15px;color:var(--muted);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-input[type=range]{accent-color:var(--green);width:min(320px,100%)}
+input[type=range]{accent-color:var(--green);width:min(320px,100%);height:24px;margin:0}
 input[type=text]{font:15px var(--mono);background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:min(100%,34rem)}
 .out{font-size:16px;min-height:1.6em}
 .lanes{display:grid;gap:14px}
@@ -109,6 +111,8 @@ body.nerd .secondary-control[hidden]{display:block}
 
 /* Info "i" and glossary terms */
 .info-affordance{position:relative;display:inline-block}
+.info-affordance__trigger{position:relative}
+.info-affordance__trigger::after{content:"";position:absolute;inset:-13px}
 .info-affordance__trigger,.term{font:inherit;cursor:help;background:none;border:0;padding:0;color:inherit}
 .info-affordance__glyph{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1px solid var(--line);font:italic 12px/1 Georgia,serif;color:var(--muted)}
 .term{border-bottom:1px dotted var(--faint)}
@@ -135,6 +139,8 @@ th{color:var(--faint);font-weight:500}
 .tag{font:13px var(--mono);white-space:nowrap}
 .tag.live{color:var(--green)} .tag.road{color:var(--orange)} .tag.test{color:var(--cyan)} .tag.wrong{color:var(--red)}
 .scroll{overflow-x:auto}
+.scroll table{min-width:560px}
+.scroll:focus-visible{outline:2px solid var(--green);outline-offset:4px}
 
 /* Moose shelf */
 .moose .actions{display:flex;flex-wrap:wrap;gap:10px;margin:16px auto 30px}

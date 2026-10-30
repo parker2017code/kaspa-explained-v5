@@ -1,7 +1,7 @@
 // Collision demo: single chain vs blockDAG under the same block arrivals.
-// One copy, loaded by index.html and what-is-kaspa.html. It used to live
+// One copy, loaded by index.html. It used to live
 // inline in both pages; the copies drifted and one correctness bug had to
-// be found twice (TODO.md, 29 Aug 2026). Self-initializes on any element
+// be found twice (TODO.md, Aug 29, 2026). Self-initializes on any element
 // carrying data-collision-sim, whose value is the element-id prefix.
 
       function initCollisionSim(rootId, prefix){
